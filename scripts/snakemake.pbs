@@ -1,0 +1,26 @@
+#!/bin/bash
+
+#PBS -A ERDCH51863EOB
+#PBS -q standard_sm
+#PBS -l select=1:ncpus=192:mpiprocs=8
+#PBS -l walltime=7:59:00
+#PBS -l application=other
+
+#PBS -N snakemake
+#PBS -o slurm
+#PBS -e slurm
+
+#PBS -m b
+#PBS -M jaimie.r.west@erdc.dren.mil
+#PBS -m e
+#PBS -M jaimie.r.west@erdc.dren.mil
+
+cd /p/work/jaimie/trycycler-snakemake-jw
+
+source ~/.bashrc
+
+conda activate assembly
+
+snakemake -c 192 -s snakefile_03_consensus --use-conda
+
+exit

@@ -1,0 +1,10 @@
+include: "rules/common.smk"
+
+##### Target rules #####
+rule all:
+    input:
+        [os.path.join('reads', isolate, "reads_qc", 'ONT.fastq')
+            for isolate in ISOLATES]
+
+##### Modules #####
+include: "rules/00_QC.smk"

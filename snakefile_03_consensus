@@ -1,0 +1,25 @@
+######################################################
+### No longer using Medaka for long-read polishing as this is not necessary with Dorado/SUP basecalling ###
+### Maybe need to: manually curate the clusters/contigs by doing reconcile step manually for each cluster of assemblies ###
+######################################################
+
+include: "rules/common.smk"
+
+try:
+    cluster = get_clusters(config["clusters"])
+except KeyError as e:
+    sys.stderr.write("No cluster selected.\n")
+    print(e)
+    raise e
+
+##### Target rules #####
+rule all:
+    input:
+        expand('assembly_final/{isolate}/trycycler_assembly.fasta', isolate=ISOLATES)
+
+#rule all: # Use this one if polishing with short reads.
+#    input:
+#        expand('assembly_final/{isolate}_trycycler_assembly.fna', isolate=ISOLATES)
+
+##### Modules #####
+include: "rules/03_trycycler_consensus.smk"

@@ -1,0 +1,13 @@
+include: "rules/common.smk"
+
+# Created 12 (or however many) assemblies for each isolate, using different assemblers, per the rule file.
+
+##### Long read assembly #####
+rule all:
+    input:
+        expand('interim/assemblies/{isolate}/assembly_{subsample}.fasta', \
+        subsample=['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'], isolate = ISOLATES),
+        #expand('interim/assemblies/{isolate}/{isolate}_all_graphs.png', isolate = ISOLATES)
+
+##### Modules #####
+include: "rules/01_trycycler_assembly.smk"

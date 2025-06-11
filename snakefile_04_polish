@@ -1,0 +1,22 @@
+##### This rule calls for QC'd short reads and the finalized polished assembly. 
+##### It executes polypolish and pypolca short read polishing.
+
+include: "rules/common.smk"
+
+##### Target rules #####
+rule all:
+    input:
+        [os.path.join('reads', isolate, "reads_qc", 'Illumina_R1.fastq.gz')
+        # Choose one of the following two lines:
+            #for isolate in ISOLATES],
+            for isolate in ['isolateName1', 'isolateName2']], # option to list out a subset of iso's that have short reads, R1
+        [os.path.join('reads', isolate, "reads_qc", 'Illumina_R2.fastq.gz')
+        # Choose one of the following two lines:
+            #for isolate in ISOLATES],
+            for isolate in ['isolateName1', 'isolateName2']], # option to list out a subset of iso's that have short reads, R2
+        expand('assembly_final/{isolate}_polished_assembly.fasta', isolate=ISOLATES)
+##### Modules #####
+include: "rules/04_polish.smk"
+
+## after polishing, could compare assemblies. Usage:    
+# scripts/compare_assemblies.py {input.assembly} {output.assembly}

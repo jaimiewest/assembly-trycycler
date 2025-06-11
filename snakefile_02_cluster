@@ -1,0 +1,45 @@
+include: "rules/common.smk"
+
+##### Cluster rule ###
+
+##########################################
+### Must use environment 'assembly.R'! ###
+##########################################
+
+rule all:
+    input:
+        'interim/clusters/cluster.yaml',
+        expand('interim/clusters/figures/{isolate}_cluster.png', isolate = ISOLATES),
+
+##### Modules #####
+include: "rules/02_trycycler_cluster.smk"
+
+################################
+# The next part is done manually. You get to inspect the contigs.newick files, perhaps in FigTree, 
+# to determine which clusters are valid and which contigs appear spurious and should be excluded.
+# See Trycycler tutorial and documentation for details
+
+# To move contigs.newick files from HPC to your local machine:
+# In a new terminal window, obtain a kerberos ticket, but do not login to the HPC.
+
+# Example command to pull files from HPC to working dir:
+
+# scp jaimie@carpenter.erdc.hpc.mil:/p/work/jaimie/trycycler-snakemake-jw/interim/clusters/{isolate}/contigs.newick \
+# /users/rdcrljrw/Documents/_CRREL/Assemblies/Trycycler_isolate_contigs/{isolate}_contigs_29Mar2024.newick
+
+# scp jaimie@carpenter.erdc.hpc.mil:/p/work/jaimie/trycycler-snakemake-jw/interim/clusters/PEI7/PEI7_cluster.png \
+# /users/rdcrljrw/Documents/_CRREL/Assemblies/Trycycler_isolate_contigs/{isolate}_cluster_29Mar2024.png
+
+#...You can use a for loop to accomplish this efficiently for multiple isolates.
+
+################################
+################################
+
+# We now need to run Trycycler reconcile on each cluster.
+# This step is iteractive, and requires human judgement and interaction.
+# Thus, it should be done manually for each isolate.
+# Some chromosomes/plasmids/clusters may not circularise and will need to be repaired or discarded. 
+# This is the hardest part of Trycycler assembly – it gets easier after this!
+# head over to the Trycycler tutorial page for more ‘how to’ and interpretation.
+
+## ADD LINKS!!

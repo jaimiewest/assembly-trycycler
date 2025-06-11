@@ -1,0 +1,239 @@
+######################################################
+### No longer using Medaka for long-read polishing as this is not necessary with Dorado/SUP basecalling ###
+### Must manually curate the clustrs/contigs by doing reconcile step manually for each cluster of assemblies ###
+######################################################
+
+### Original script follows, which didn't work for me/my setup ###
+#include: "rules/common.smk"
+
+#try:
+#    cluster = get_clusters(config["clusters"])
+#except KeyError as e:
+#    sys.stderr.write("No cluster selected.\n")
+#    print(e)
+#    raise e
+
+##### Target rules #####
+#rule all:
+#    input:
+#        expand('data/processed/{isolate}/03_trycycler_consensus/{isolate}.fna', isolate = ISOLATES)
+
+#rule all:
+#    input:
+#        expand('data/interim/03_consensus/{isolate}/{cluster}_copy.log', isolate = ISOLATES, cluster = get_clusters(config["clusters"]))
+
+
+##### Modules #####
+#include: "rules/03_trycycler_consensus.smk"
+
+
+### Here is the continuation, after manually running reconcile:
+
+include: "rules/common.smk"
+
+################################
+# default rule
+
+rule all:
+    input:
+        expand('interim/clusters/{isolate}/{cluster}/7_final_consensus.fasta', isolate =ISOLATES, cluster = CLUSTERS)
+#cluster = lambda wildcards: CLUSTERS[wildcards.isolate]) #if 'isolate' in wildcards else []
+
+#    input:
+#        expand('assembly_final/{isolate}_try_assembly_polypolish.fna', isolate = ISOLATES)
+
+################################
+rule all_get_clusters:
+    input:
+        'interim/clusters/cluster.yaml'
+
+rule cluster_dump_mini:
+    input:
+        expand('interim/clusters/{isolate}', isolate = ISOLATES),
+    output:
+        yaml = 'interim/clusters/cluster.yaml'
+    params:
+        cluster_path = 'interim/clusters'
+    run:
+        class yaml_indent_dump(yaml.Dumper):
+            def increase_indent(self, flow=False, indentless=False):
+                    return super(yaml_indent_dump, self).increase_indent(flow, False)
+
+        # initialize clusters dictionary
+        clusters = {}
+        cluster_path = Path(params.cluster_path)
+
+        for s in ISOLATES:
+            isolate = cluster_path / s
+            isolate_cluster = [c.name for c in isolate.glob('cluster*')]  # Collect cluster names
+            
+            # Assign clusters to isolate
+            clusters[s] = isolate_cluster
+
+        # Write as YAML
+        with open(output.yaml, 'w') as f:
+            yaml.dump(clusters, f, Dumper=yaml_indent_dump, default_flow_style=False)
+
+        global CLUSTERS
+        CLUSTERS.update(clusters)
+
+## Rule to load clusters after they have been created
+#rule load_clusters:
+#    input:
+#        'interim/clusters/cluster.yaml'
+#    run:
+#        global CLUSTERS
+#        CLUSTERS = get_clusters(input[0])
+
+################################
+rule all_consensus:
+    input:
+        expand('assembly_final/{isolate}/trycycler_assembly.fasta', isolate = ISOLATES)
+
+rule trycycler_MSA:
+    input:
+        reconcile = 'interim/clusters/{isolate}/{cluster}/2_all_seqs.fasta'
+    output:
+        msa = 'interim/clusters/{isolate}/{cluster}/3_msa.fasta'
+    threads: 1
+    params:
+        cluster = 'interim/clusters/{isolate}/{cluster}',
+    shell:
+        """
+        trycycler msa --threads {threads} --cluster_dir {params.cluster}
+        """
+
+rule trycycler_partition:
+    input:
+        #reconcile = 'interim/clusters/{isolate}/{cluster}_copy.log',
+        msa = lambda wildcards: get_final_msa(wildcards.isolate, cluster),
+        raw_reads = 'reads/{isolate}/reads_qc/ONT.fastq',
+    output:
+        partition = "interim/clusters/{isolate}/partition.log"
+    threads: 1
+    params:
+        cluster = lambda wildcards: get_final_cluster(wildcards.isolate, cluster)
+    shell:
+        """
+        trycycler partition --threads {threads} --reads {input.raw_reads} --cluster_dirs {params.cluster}
+        echo "partition success!" > {output.partition}
+        """
+
+rule trycycler_consensus:
+    input:
+        partition = "interim/clusters/{isolate}/partition.log",
+        reconcile = 'interim/clusters/{isolate}/{cluster}_copy.log',
+    output:
+        consensus = 'interim/clusters/{isolate}/{cluster}/7_final_consensus.fasta'
+    threads: 1
+    shell:
+        """
+        trycycler consensus --threads {threads} --cluster_dir interim/clusters/{wildcards.isolate}/{wildcards.cluster}
+        """
+
+rule trycycler_concat:
+    input:
+        lambda wildcards: get_final_consensus(wildcards.isolate, cluster)
+    output:
+        assembly = 'assembly_final/{isolate}/trycycler_assembly.fasta'
+    threads: 1
+    shell:
+        """
+        cat {input} > {output.assembly}
+        """
+
+# MEDAKA polishing step omitted here.
+
+################################
+#rule all_polypolish:
+#    input:
+#        expand('assembly_final/{isolate}/try_assembly_polypolish.fasta', isolate = ISOLATES)
+
+#rule trycycler_concat:
+#    input:
+#        lambda wildcards: get_final_consensus(wildcards.isolate, cluster)
+#    output:
+#        assembly = 'assembly_final/{isolate}/trycycler_assembly.fasta'
+#    threads: 1
+#    shell:
+#        """
+#        cat {input} > {output.assembly}
+#        """
+
+#rule align_and_filter:
+#    input:
+#        assembly = 'assembly_final/{isolate}/trycycler_assembly.fasta',
+#        IlluminaR1 = 'reads/{isolate}/reads_qc/Illumina_R1.fastq.gz',
+#        IlluminaR2 = 'reads/{isolate}/reads_qc/Illumina_R2.fastq.gz',
+#    output:
+#        alignments1 = 'interim/consensus/{isolate}/alignments_1.sam',
+#        alignments2 = 'interim/consensus/{isolate}/alignments_2.sam',
+#        filter1 = 'interim/consensus/{isolate}/filtered_1.sam',
+#        filter2 = 'interim/consensus/{isolate}/filtered_2.sam',
+#    threads: 16
+#    shell:
+#        """
+#        bwa index {input.assembly}
+#        bwa mem -t {threads} -a {input.assembly} {input.IlluminaR1} > {output.alignments1}
+#        bwa mem -t {threads} -a {input.assembly} {input.IlluminaR2} > {output.alignments2}
+
+#        polypolish filter --in1 {output.alignments1} --in2 {output.alignments2} --out1 {output.filter1} --out2 {output.filter2}
+#        """
+
+#rule polypolish:
+#    input:
+#        assembly = 'assembly_final/{isolate}/trycycler_assembly.fasta',
+#        filter1 = 'interim/consensus/{isolate}/filtered_1.sam',
+#        filter2 = 'interim/consensus/{isolate}/filtered_2.sam',
+#    output:
+#        assembly = 'assembly_final/{isolate}/try_assembly_polypolish.fasta'
+#    params:
+#        dir = 'interim/consensus/{isolate}'
+#    threads: 16
+#    shell:
+#        """
+#        polypolish polish {input.assembly} {input.filter1} {input.filter2} > {output.assembly}
+#
+#        cd {params.dir}
+#        rm *.bwt *.pac *.ann *.amb *.sa *.sam
+
+        #scripts/compare_assemblies.py {input.assembly} {output.assembly}
+#        """
+
+################################
+#rule all_pypolca:
+#    input:
+#        expand('assembly_final/{isolate}_try_assembly_polypolish.fna', isolate = ISOLATES)
+
+#rule pypolca:
+#    input:
+#        polypolish = 'assembly_final/{isolate}/try_assembly_polypolish.fasta',
+#        IlluminaR1 = 'reads/{isolate}/reads_qc/Illumina_R1.fastq.gz',
+#        IlluminaR2 = 'reads/{isolate}/reads_qc/Illumina_R2.fastq.gz',
+#    output:
+#        assembly = 'assembly_final/{isolate}/pypolca_corrected.fasta',
+#        assembly_renamed = 'assembly_final/{isolate}/try_assembly_polypolish_pypolca.fasta'
+#    params:
+#        outdir = 'assembly_final/{isolate}'
+#    threads: 16
+#    shell:
+#        """
+#        pypolca run --careful -a {input.polypolish} -1 {input.IlluminaR1} -2 {input.IlluminaR2} -t {threads} -o {params.outdir}
+#        cp {output.assembly} {output.assembly_renamed}
+#        """
+
+################################
+#rule all_finalize:
+#    input:
+#        expand('assembly_final/{isolate}_try_assembly_polypolish_pypolca.fna', isolate = ISOLATES)
+
+#rule format_final_assembly:
+#    input:
+#        assembly = 'assembly_final/{isolate}/try_assembly_polypolish_pypolca.fasta'
+#    output:
+#        assembly = 'assembly_final/{isolate}_try_assembly_polypolish_pypolca.fna'
+#    threads: 1
+#    shell:
+#        """
+#        python workflow/scripts/format_fna.py {wildcards.isolate} {input.assembly} {output.assembly}
+#        """

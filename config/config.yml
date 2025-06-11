@@ -1,0 +1,20 @@
+# This file should contain everything to configure the workflow on a global scale.
+isolates:
+    - "isolateName1"
+    - "isolateName2"
+
+# cluster.yaml is created in the pipeline;
+# delete the lines that refer to assemblies or clusters that are to be excluded, per manual inspection of assemblies.
+# see Trycycler documentation for details.
+clusters: "interim/clusters/cluster.yaml"
+
+rule_params:
+  rule_ONT_filter:
+        #min_length: 6000
+        # Option to see min_length for each isolate. suggest starting with 400 and increase to 6000 if assembly is messy.
+    min_length: 
+      isolateName1: 4000
+      isolateName2: 4000
+    keep_percent: 90
+  rule_trycycler_reconcile:
+    max_add_seq: 1000

@@ -1,0 +1,10 @@
+##### This rule calls for the finalized unpolished assembly.
+
+include: "rules/common.smk"
+
+##### Target rules #####
+rule all:
+    input:
+        expand('assembly_final/{isolate}_trycycler_assembly.fasta', isolate=ISOLATES)
+##### Modules #####
+include: "rules/05_format.smk"
