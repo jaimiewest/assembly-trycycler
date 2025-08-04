@@ -1,0 +1,51 @@
+#!/bin/bash
+
+#PBS -A ERDCH51863EOB
+#PBS -q standard_sm
+#PBS -l select=1:ncpus=192:mpiprocs=12
+#PBS -l walltime=7:59:00
+#PBS -l application=other
+
+#PBS -N Flye
+#PBS -o slurm
+#PBS -e slurm
+
+#PBS -m b
+#PBS -M jaimie.r.west@erdc.dren.mil
+#PBS -m e
+#PBS -M jaimie.r.west@erdc.dren.mil
+
+cd /p/work/jaimie/flye
+
+source ~/.bashrc
+
+NAME="flye_3June2025"
+declare -a isolates=("AKPF4" "AKSL1" "AKPF3" "NSN2")
+
+conda activate trycycler-assembly
+
+for iso in "${isolates[@]}"; do flye --nano-hq reads/${iso}/ONT.fastq --threads 16 --out-dir assemblies/${iso}/; done
+
+cd /p/work/jaimie/checkm2
+conda activate checkm2
+for iso in "${isolates[@]}"; do checkm2 predict --threads 16 --input /p/work/jaimie/flye/assemblies/${iso}/assembly.fasta --output-directory results/${iso} --force; done
+
+cd /p/work/jaimie/GTDB/
+mkdir "$NAME"
+conda activate gtdbtk-2.4.0
+export GTDBTK_DATA_PATH=release220
+
+for iso in "${isolates[@]}"; do cp /p/work/jaimie/flye/assemblies/${iso}/assembly.fasta "$NAME"/${iso}_flye_assembly.fasta; done
+
+gtdbtk classify_wf --genome_dir "$NAME" --out_dir "$NAME" --cpus 16 --mash_db MASH_DB --extension fasta
+
+cd /p/work/jaimie/
+mkdir "$NAME"
+cd "$NAME"
+mkdir checkm2 GTDB
+
+for iso in "${isolates[@]}"; do cp -r /p/work/jaimie/checkm2/results/${iso} checkm2; done
+cp -r /p/work/jaimie/GTDB/"$NAME"/ GTDB
+cd ..
+tar -czf "$NAME".tar.gz "${isolates[@]}"
+exit

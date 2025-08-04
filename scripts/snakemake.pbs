@@ -6,7 +6,7 @@
 #PBS -l walltime=7:59:00
 #PBS -l application=other
 
-#PBS -N snakemake
+#PBS -N trycycler-assembly
 #PBS -o slurm
 #PBS -e slurm
 
@@ -19,7 +19,7 @@ cd /p/work/jaimie/trycycler-snakemake-jw
 
 source ~/.bashrc
 
-conda activate assembly
+conda activate trycycler-assembly
 
 snakemake -c 192 -s snakefile_03_consensus --use-conda
 

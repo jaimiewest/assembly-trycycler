@@ -1,4 +1,6 @@
 # This file should contain everything to configure the workflow on a global scale.
+# replace isolateName1 etc with actual isolate names (must match how long read files are named), 
+# both here (keep quotes and other formatting), and below in the min_length section (no quotes).
 isolates:
     - "isolateName1"
     - "isolateName2"
@@ -11,7 +13,7 @@ clusters: "interim/clusters/cluster.yaml"
 rule_params:
   rule_ONT_filter:
         #min_length: 6000
-        # Option to see min_length for each isolate. suggest starting with 400 and increase to 6000 if assembly is messy.
+        # Option to see min_length for each isolate. suggest starting with 4000 and increase to 6000 if assembly is messy.
     min_length: 
       isolateName1: 4000
       isolateName2: 4000
