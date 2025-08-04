@@ -1,6 +1,5 @@
 #!/bin/bash
 
-#PBS -A ERDCH51863EOB
 #PBS -q standard_sm
 #PBS -l select=1:ncpus=192:mpiprocs=8
 #PBS -l walltime=7:59:00
@@ -11,11 +10,11 @@
 #PBS -e slurm
 
 #PBS -m b
-#PBS -M jaimie.r.west@erdc.dren.mil
+#PBS -M EMAIL
 #PBS -m e
-#PBS -M jaimie.r.west@erdc.dren.mil
+#PBS -M EMAIL
 
-cd /p/work/jaimie/trycycler-snakemake-jw
+cd /p/work/jaimie/trycycler-assembly
 
 source ~/.bashrc
 

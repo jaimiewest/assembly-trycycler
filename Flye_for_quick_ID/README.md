@@ -19,9 +19,8 @@ https://github.com/chklovski/CheckM2
 
 [to install, I had to constrain python version for installation to work--see issue 82]
 
-USAGE (adjust paths and isolate names):
+USAGE (adjust paths and isolate names; first start interactive job):
 ```bash
-qsub -l select=1:ncpus=192:mpiprocs=12 -A ERDCH51863EOB -q debug -l walltime=000:59:59 -l application=bash -I
 conda activate checkm2
 cd p/work/jaimie/checkm2
 checkm2 predict --threads 16 --input /p/work/jaimie/assemblies/ISOLATENAME/ISOLATENAME.fasta --output-directory results/ISOLATENAME
@@ -39,7 +38,6 @@ USAGE:
 Copy/Make sure your assemblies of interest are in the --genome_dir folder. This will run them all togehter.
 
 ```bash
-qsub -l select=1:ncpus=192:mpiprocs=12 -A ERDCH51863EOB -q debug -l walltime=000:59:59 -l application=bash -I
 conda activate gtdbtk-2.4.0
 export GTDBTK_DATA_PATH=release220
 cd /p/work/jaimie/GTDB
